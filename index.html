@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表情包切割器 - AI生成表情包批量处理工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon svg {
+            width: 1em;
+            height: 1em;
+            fill: currentColor;
+        }
+        
+        .icon-lg svg {
+            width: 1.25em;
+            height: 1.25em;
+        }
+        
+        .upload-icon-svg {
+            width: 80px;
+            height: 80px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .upload-icon-svg svg {
+            width: 100%;
+            height: 100%;
+        }
+        * {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252540;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-1: #ff6b9d;
+            --accent-2: #c44fff;
+            --accent-3: #6b5cff;
+            --border-color: #3a3a5c;
+        }
+        
+        .light-theme {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e8ecf2;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --accent-1: #ff6b9d;
+            --accent-2: #c44fff;
+            --accent-3: #6b5cff;
+            --border-color: #e2e8f0;
+        }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--accent-1);
+            box-shadow: 0 8px 32px rgba(255, 107, 157, 0.1);
+        }
+        
+        .input-field {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.2);
+        }
+        
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+        
+        .bg-tertiary {
+            background: var(--bg-tertiary);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .gradient-border {
+            position: relative;
+            background: var(--bg-secondary);
+        }
+        
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 2px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 107, 157, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent-1);
+            background: linear-gradient(135deg, rgba(255,107,157,0.1), rgba(196,79,255,0.1));
+        }
+        
+        .btn-secondary.active {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            border-color: transparent;
+            color: white;
+        }
+        
+        /* Upload Zone Styles */
+        .upload-zone {
+            background: linear-gradient(135deg, rgba(255,107,157,0.05), rgba(196,79,255,0.05));
+            border: 3px dashed var(--border-color);
+            transition: all 0.4s ease;
+        }
+        
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--accent-1);
+            background: linear-gradient(135deg, rgba(255,107,157,0.15), rgba(196,79,255,0.15));
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 80px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 157, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(196, 79, 255, 0.5); }
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        /* Grid overlay */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .grid-line-v {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            border-left: 2px dashed var(--accent-1);
+            opacity: 0.8;
+        }
+        
+        .grid-line-h {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            border-top: 2px dashed var(--accent-1);
+            opacity: 0.8;
+        }
+        
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+            transform-origin: top left;
+        }
+        
+        #drawCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .preview-item {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .preview-item:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 24px rgba(255, 107, 157, 0.3);
+        }
+        
+        .color-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .color-btn:hover {
+            transform: scale(1.15);
+        }
+        
+        .color-btn.active {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.3);
+        }
+        
+        .transparent-item {
+            position: relative;
+        }
+        
+        .transparent-item .delete-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            color: white;
+        }
+        
+        .transparent-item:hover .delete-btn {
+            opacity: 1;
+        }
+        
+        /* Theme toggle */
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            border-radius: 15px;
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+        
+        .theme-toggle::before {
+            content: '🌙';
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .light-theme .theme-toggle::before {
+            content: '☀️';
+            left: calc(100% - 26px);
+            background: linear-gradient(135deg, var(--accent-1), #ffb347);
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            border-radius: 4px;
+        }
+        
+        /* Slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+        }
+        
+        /* Section labels */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        
+        .section-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Welcome Upload Screen -->
+    <div id="welcomeScreen" class="min-h-screen flex flex-col items-center justify-center p-8">
+        <!-- Header -->
+        <div class="text-center mb-8 fade-in">
+            <h1 class="text-5xl font-bold gradient-text mb-3">
+                <svg class="inline-block w-12 h-12 mr-2 align-middle" viewBox="0 0 24 24" fill="none" stroke="url(#grad1)" stroke-width="2">
+                    <defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff6b9d"/><stop offset="100%" style="stop-color:#c44fff"/></linearGradient></defs>
+                    <path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/>
+                </svg>
+                表情包切割器
+            </h1>
+            <p class="text-secondary text-lg">AI生成图片批量切割 & 涂改修复工具</p>
+        </div>
+        
+        <!-- Theme Toggle -->
+        <div class="absolute top-6 right-6 flex items-center gap-3 fade-in">
+            <span class="text-secondary text-sm">主题</span>
+            <div class="theme-toggle" onclick="toggleTheme()"></div>
+        </div>
+        
+        <!-- Upload Zone -->
+        <label id="welcomeDropZone" class="upload-zone rounded-3xl p-16 cursor-pointer block max-w-2xl w-full text-center pulse-glow fade-in stagger-1">
+            <input type="file" id="imageInput" accept="image/*" class="hidden">
+            <div class="upload-icon-svg mb-6 mx-auto">
+                <svg viewBox="0 0 80 80" fill="none">
+                    <defs>
+                        <linearGradient id="uploadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ff6b9d"/>
+                            <stop offset="50%" style="stop-color:#c44fff"/>
+                            <stop offset="100%" style="stop-color:#6b5cff"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="8" y="16" width="64" height="48" rx="6" stroke="url(#uploadGrad)" stroke-width="3" fill="none"/>
+                    <circle cx="28" cy="36" r="6" fill="url(#uploadGrad)" opacity="0.6"/>
+                    <path d="M8 52 L28 38 L40 48 L56 32 L72 48 L72 58 C72 61.3 69.3 64 66 64 L14 64 C10.7 64 8 61.3 8 58 Z" fill="url(#uploadGrad)" opacity="0.3"/>
+                    <path d="M40 8 L40 28 M32 18 L40 8 L48 18" stroke="url(#uploadGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold mb-3 gradient-text">拖拽图片到此处</h2>
+            <p class="text-secondary mb-4">或点击选择文件</p>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tertiary text-sm text-secondary">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg>
+                <span>支持 JPG、PNG、WebP 等格式</span>
+            </div>
+        </label>
+        
+        <!-- Features hint -->
+        <div class="mt-12 flex gap-8 text-secondary text-sm fade-in stagger-2">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" style="color: var(--accent-1)" viewBox="0 0 24 24" fill="currentColor"><path d="M22 18v-2H8V4h2L7 1 4 4h2v2H2v2h4v8c0 1.1.9 2 2 2h8v2h-2l3 3 3-3h-2v-2h4zM10 8h6v6h2V8c0-1.1-.9-2-2-2h-6v2z"/></svg>
+                <span>自定义网格切割</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" style="color: var(--accent-2)" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34c-.39-.39-1.02-.39-1.41 0L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41z"/></svg>
+                <span>涂改笔修复</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" style="color: var(--accent-3)" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+                <span>批量导出</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Editor Screen -->
+    <div id="editorScreen" class="hidden">
+        <!-- Top Bar -->
+        <div class="sticky top-0 z-50 px-6 py-4" style="background: var(--bg-primary); border-bottom: 1px solid var(--border-color);">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-2xl font-bold gradient-text flex items-center gap-2">
+                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="url(#headerGrad)">
+                            <defs><linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff6b9d"/><stop offset="100%" style="stop-color:#c44fff"/></linearGradient></defs>
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/>
+                        </svg>
+                        表情包切割器
+                    </h1>
+                    <button onclick="resetAndUploadNew()" class="btn-secondary px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+                        重新上传
+                    </button>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-secondary text-sm" id="imageInfo"></span>
+                    <div class="theme-toggle" onclick="toggleTheme()"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="grid lg:grid-cols-12 gap-6">
+                <!-- Left Panel - Tools -->
+                <div class="lg:col-span-3 space-y-4">
+                    <!-- Grid Settings -->
+                    <div class="card rounded-2xl p-5 fade-in">
+                        <div class="section-label">
+                            <div class="section-icon"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="white"><path d="M22 18v-2H8V4h2L7 1 4 4h2v2H2v2h4v8c0 1.1.9 2 2 2h8v2h-2l3 3 3-3h-2v-2h4zM10 8h6v6h2V8c0-1.1-.9-2-2-2h-6v2z"/></svg></div>
+                            <span>网格设置</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="text-secondary text-xs mb-1 block">列数</label>
+                                <input type="number" id="cols" value="4" min="1" max="20" 
+                                    class="input-field w-full rounded-xl px-3 py-2 text-center outline-none">
+                            </div>
+                            <div>
+                                <label class="text-secondary text-xs mb-1 block">行数</label>
+                                <input type="number" id="rows" value="4" min="1" max="20" 
+                                    class="input-field w-full rounded-xl px-3 py-2 text-center outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="setGrid(2,2)" class="btn-secondary px-3 py-1.5 rounded-lg text-sm">2×2</button>
+                            <button onclick="setGrid(3,3)" class="btn-secondary px-3 py-1.5 rounded-lg text-sm">3×3</button>
+                            <button onclick="setGrid(4,4)" class="btn-secondary px-3 py-1.5 rounded-lg text-sm active">4×4</button>
+                            <button onclick="setGrid(4,6)" class="btn-secondary px-3 py-1.5 rounded-lg text-sm">4×6</button>
+                            <button onclick="setGrid(5,5)" class="btn-secondary px-3 py-1.5 rounded-lg text-sm">5×5</button>
+                        </div>
+                    </div>
+
+                    <!-- Brush Tool -->
+                    <div class="card rounded-2xl p-5 fade-in stagger-1">
+                        <div class="section-label">
+                            <div class="section-icon"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="white"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34c-.39-.39-1.02-.39-1.41 0L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41z"/></svg></div>
+                            <span>涂改笔</span>
+                        </div>
+                        
+                        <!-- Tool Toggle -->
+                        <div class="flex gap-2 mb-4">
+                            <button id="brushBtn" onclick="setTool('brush')" class="btn-secondary flex-1 px-3 py-2 rounded-xl text-sm flex items-center justify-center gap-1 active">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                涂改
+                            </button>
+                            <button id="moveBtn" onclick="setTool('move')" class="btn-secondary flex-1 px-3 py-2 rounded-xl text-sm flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>
+                                移动
+                            </button>
+                        </div>
+
+                        <!-- Brush Size -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-secondary">笔刷大小</span>
+                                <span id="brushSizeValue" class="font-medium">20px</span>
+                            </div>
+                            <input type="range" id="brushSize" min="5" max="100" value="20" class="w-full">
+                        </div>
+
+                        <!-- Color Presets -->
+                        <div class="mb-4">
+                            <span class="text-secondary text-sm block mb-2">颜色预设</span>
+                            <div class="flex gap-2 flex-wrap">
+                                <button class="color-btn active" style="background: white" onclick="setColor('#ffffff', this)"></button>
+                                <button class="color-btn" style="background: #f3f4f6" onclick="setColor('#f3f4f6', this)"></button>
+                                <button class="color-btn" style="background: #fef3c7" onclick="setColor('#fef3c7', this)"></button>
+                                <button class="color-btn" style="background: #fce7f3" onclick="setColor('#fce7f3', this)"></button>
+                                <button class="color-btn" style="background: #dbeafe" onclick="setColor('#dbeafe', this)"></button>
+                                <button class="color-btn" style="background: #d1fae5" onclick="setColor('#d1fae5', this)"></button>
+                                <button class="color-btn" style="background: #1f2937" onclick="setColor('#1f2937', this)"></button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Color & Eyedropper -->
+                        <div class="flex gap-2 mb-4">
+                            <div class="flex-1">
+                                <input type="color" id="customColor" value="#ffffff" 
+                                    class="w-full h-10 rounded-xl cursor-pointer border-0">
+                            </div>
+                            <button id="eyedropperBtn" onclick="toggleEyedropper()" 
+                                class="btn-secondary w-12 h-10 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-3.12 3.12-1.93-1.91-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12c.4-.4.4-1.03.01-1.42zM6.92 19L5 17.08l8.06-8.06 1.92 1.92L6.92 19z"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- Current Color -->
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-tertiary">
+                            <div id="currentColorDisplay" class="w-8 h-8 rounded-lg border-2" style="background: white; border-color: var(--border-color)"></div>
+                            <div>
+                                <div class="text-xs text-secondary">当前颜色</div>
+                                <div id="currentColorHex" class="text-sm font-medium">#ffffff</div>
+                            </div>
+                        </div>
+
+                        <!-- Undo -->
+                        <button onclick="undoDraw()" class="w-full mt-4 btn-secondary px-4 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                            撤销
+                        </button>
+                    </div>
+
+                    <!-- Transparent Colors -->
+                    <div class="card rounded-2xl p-5 fade-in stagger-2">
+                        <div class="section-label">
+                            <div class="section-icon"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="white"><path d="M17.66 8L12 2.35 6.34 8C4.78 9.56 4 11.64 4 13.64s.78 4.11 2.34 5.67 3.61 2.35 5.66 2.35 4.1-.79 5.66-2.35S20 15.64 20 13.64 19.22 9.56 17.66 8zM6 14c.01-2 .62-3.27 1.76-4.4L12 5.27l4.24 4.38C17.38 10.77 17.99 12 18 14H6z"/></svg></div>
+                            <span>透明色</span>
+                        </div>
+                        <p class="text-xs text-secondary mb-3">导出时将这些颜色变为透明</p>
+                        
+                        <div class="flex gap-2 mb-3">
+                            <button onclick="addTransparentColorFromPicker()" class="btn-secondary flex-1 px-2 py-2 rounded-xl text-xs flex items-center justify-center gap-1">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                添加
+                            </button>
+                            <button onclick="addTransparentColorFromEyedropper()" class="btn-secondary flex-1 px-2 py-2 rounded-xl text-xs flex items-center justify-center gap-1">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-3.12 3.12-1.93-1.91-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12c.4-.4.4-1.03.01-1.42zM6.92 19L5 17.08l8.06-8.06 1.92 1.92L6.92 19z"/></svg>
+                                取色
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-secondary">容差</span>
+                                <span id="toleranceValue">30</span>
+                            </div>
+                            <input type="range" id="colorTolerance" min="0" max="100" value="30" class="w-full">
+                        </div>
+                        
+                        <div id="transparentColorsList" class="flex gap-2 flex-wrap min-h-[32px] p-2 rounded-xl bg-tertiary">
+                            <span class="text-secondary text-xs">暂无</span>
+                        </div>
+                    </div>
+
+                    <!-- Zoom -->
+                    <div class="card rounded-2xl p-5 fade-in stagger-3">
+                        <div class="section-label">
+                            <div class="section-icon"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="white"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M12 10h-2v2H8v-2H6V8h2V6h2v2h2v2z"/></svg></div>
+                            <span>画布缩放</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="zoomCanvas(0.8)" class="btn-secondary w-10 h-10 rounded-xl flex items-center justify-center"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg></button>
+                            <div class="flex-1 text-center">
+                                <span id="zoomValue" class="text-xl font-bold gradient-text">100</span>
+                                <span class="text-secondary">%</span>
+                            </div>
+                            <button onclick="zoomCanvas(1.25)" class="btn-secondary w-10 h-10 rounded-xl flex items-center justify-center"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="setZoom(0.5)" class="btn-secondary flex-1 py-1.5 rounded-lg text-xs">50%</button>
+                            <button onclick="setZoom(1)" class="btn-secondary flex-1 py-1.5 rounded-lg text-xs">100%</button>
+                            <button onclick="setZoom(1.5)" class="btn-secondary flex-1 py-1.5 rounded-lg text-xs">150%</button>
+                            <button onclick="setZoom(2)" class="btn-secondary flex-1 py-1.5 rounded-lg text-xs">200%</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Panel - Canvas -->
+                <div class="lg:col-span-6">
+                    <div class="card rounded-2xl p-5 fade-in">
+                        <div class="section-label mb-4">
+                            <div class="section-icon"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg></div>
+                            <span>编辑区域</span>
+                        </div>
+                        
+                        <div class="flex justify-center overflow-auto rounded-xl p-4" style="background: var(--bg-tertiary); max-height: 70vh;">
+                            <div class="canvas-container" id="canvasContainer">
+                                <canvas id="mainCanvas"></canvas>
+                                <canvas id="drawCanvas"></canvas>
+                                <div class="grid-overlay" id="gridOverlay"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="card rounded-2xl p-5 mt-4 fade-in stagger-1">
+                        <div class="section-label">
+                            <div class="section-icon">👀</div>
+                            <span>切割预览</span>
+                            <span class="text-secondary text-sm ml-auto" id="previewCount"></span>
+                        </div>
+                        <div id="previewGrid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-52 overflow-y-auto p-2">
+                            <div class="text-secondary col-span-full text-center py-4 text-sm">
+                                处理中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Export -->
+                <div class="lg:col-span-3 space-y-4">
+                    <!-- Export Settings -->
+                    <div class="card rounded-2xl p-5 fade-in">
+                        <div class="section-label">
+                            <div class="section-icon">💾</div>
+                            <span>导出设置</span>
+                        </div>
+                        
+                        <!-- File Prefix -->
+                        <div class="mb-4">
+                            <label class="text-secondary text-xs mb-1 block">文件名前缀</label>
+                            <input type="text" id="filePrefix" value="emoji" placeholder="例如: emoji" 
+                                class="input-field w-full rounded-xl px-3 py-2 outline-none">
+                            <p class="text-xs text-secondary mt-1">预览: <span id="fileNamePreview" class="font-medium" style="color: var(--accent-1)">emoji_001.png</span></p>
+                        </div>
+                        
+                        <!-- Starting Number -->
+                        <div class="mb-4">
+                            <label class="text-secondary text-xs mb-1 block">起始编号</label>
+                            <input type="number" id="startNumber" value="1" min="0" max="9999" 
+                                class="input-field w-full rounded-xl px-3 py-2 outline-none">
+                        </div>
+                        
+                        <!-- Number Padding -->
+                        <div class="mb-4">
+                            <label class="text-secondary text-xs mb-1 block">编号位数</label>
+                            <div class="flex gap-2">
+                                <button onclick="setNumberPadding(1)" class="num-pad-btn btn-secondary flex-1 py-1.5 rounded-lg text-sm">1位</button>
+                                <button onclick="setNumberPadding(2)" class="num-pad-btn btn-secondary flex-1 py-1.5 rounded-lg text-sm">2位</button>
+                                <button onclick="setNumberPadding(3)" class="num-pad-btn btn-secondary flex-1 py-1.5 rounded-lg text-sm active">3位</button>
+                                <button onclick="setNumberPadding(4)" class="num-pad-btn btn-secondary flex-1 py-1.5 rounded-lg text-sm">4位</button>
+                            </div>
+                        </div>
+
+                        <!-- Save Folder -->
+                        <div class="mb-4">
+                            <label class="text-secondary text-xs mb-1 block">保存位置</label>
+                            <div class="flex gap-2">
+                                <div id="selectedFolder" class="input-field flex-1 rounded-xl px-3 py-2 text-sm truncate">
+                                    默认下载
+                                </div>
+                                <button onclick="selectSaveFolder()" class="btn-secondary px-3 py-2 rounded-xl text-sm whitespace-nowrap">
+                                    📁
+                                </button>
+                            </div>
+                            <p class="text-xs text-secondary mt-1" id="folderApiNote"></p>
+                        </div>
+                    </div>
+
+                    <!-- Export Button -->
+                    <button onclick="exportAll()" class="w-full btn-primary px-6 py-4 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-3">
+                        <span class="text-2xl">📦</span>
+                        <span>批量导出全部</span>
+                    </button>
+                    
+                    <!-- Tips -->
+                    <div class="card rounded-2xl p-5 fade-in stagger-2">
+                        <div class="section-label">
+                            <div class="section-icon">💡</div>
+                            <span>使用提示</span>
+                        </div>
+                        <ul class="text-xs text-secondary space-y-2">
+                            <li class="flex items-start gap-2">
+                                <span>•</span>
+                                <span>使用涂改笔覆盖AI生成的多余元素</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span>•</span>
+                                <span>设置透明色可在导出时自动去除背景</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span>•</span>
+                                <span>点击预览图可单独下载某一个</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span>•</span>
+                                <span>放大画布便于精细涂改</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let originalImage = null;
+        let currentTool = 'brush';
+        let brushColor = '#ffffff';
+        let brushSize = 20;
+        let isDrawing = false;
+        let isEyedropper = false;
+        let isTransparentEyedropper = false;
+        let drawHistory = [];
+        let lastX, lastY;
+        let currentZoom = 1;
+        let transparentColors = [];
+        let isLightTheme = false;
+        
+        // Export settings
+        let filePrefix = 'emoji';
+        let startNumber = 1;
+        let numberPadding = 3;
+        let selectedFolderHandle = null;
+
+        // DOM Elements
+        const imageInput = document.getElementById('imageInput');
+        const mainCanvas = document.getElementById('mainCanvas');
+        const drawCanvas = document.getElementById('drawCanvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        const drawCtx = drawCanvas.getContext('2d');
+        const gridOverlay = document.getElementById('gridOverlay');
+        const colsInput = document.getElementById('cols');
+        const rowsInput = document.getElementById('rows');
+        const brushSizeInput = document.getElementById('brushSize');
+        const customColorInput = document.getElementById('customColor');
+        const welcomeDropZone = document.getElementById('welcomeDropZone');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const editorScreen = document.getElementById('editorScreen');
+
+        // Initialize
+        function init() {
+            imageInput.addEventListener('change', handleImageUpload);
+            colsInput.addEventListener('change', updateGrid);
+            rowsInput.addEventListener('change', updateGrid);
+            
+            brushSizeInput.addEventListener('input', (e) => {
+                brushSize = parseInt(e.target.value);
+                document.getElementById('brushSizeValue').textContent = brushSize + 'px';
+            });
+            
+            customColorInput.addEventListener('input', (e) => {
+                setColor(e.target.value);
+            });
+            
+            document.getElementById('colorTolerance').addEventListener('input', (e) => {
+                document.getElementById('toleranceValue').textContent = e.target.value;
+            });
+
+            // Drag and drop for welcome screen
+            setupDragDrop(welcomeDropZone);
+
+            // Canvas events
+            drawCanvas.addEventListener('mousedown', startDraw);
+            drawCanvas.addEventListener('mousemove', draw);
+            drawCanvas.addEventListener('mouseup', stopDraw);
+            drawCanvas.addEventListener('mouseleave', stopDraw);
+
+            // Touch support
+            drawCanvas.addEventListener('touchstart', handleTouch);
+            drawCanvas.addEventListener('touchmove', handleTouchMove);
+            drawCanvas.addEventListener('touchend', stopDraw);
+            
+            // Export settings listeners
+            document.getElementById('filePrefix').addEventListener('input', (e) => {
+                filePrefix = e.target.value || 'emoji';
+                updateFileNamePreview();
+            });
+            
+            document.getElementById('startNumber').addEventListener('input', (e) => {
+                startNumber = parseInt(e.target.value) || 1;
+                updateFileNamePreview();
+            });
+            
+            // Check File System Access API support
+            if (!('showDirectoryPicker' in window)) {
+                document.getElementById('folderApiNote').textContent = '浏览器不支持文件夹选择';
+                document.getElementById('folderApiNote').style.color = 'var(--accent-1)';
+            }
+            
+            updateFileNamePreview();
+        }
+
+        function setupDragDrop(element) {
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                element.classList.add('drag-over');
+            });
+            
+            element.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                element.classList.remove('drag-over');
+            });
+            
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                element.classList.remove('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    handleImageFile(files[0]);
+                }
+            });
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            handleImageFile(file);
+        }
+        
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalImage = img;
+                    currentZoom = 1;
+                    document.getElementById('zoomValue').textContent = '100';
+                    setupCanvas(img);
+                    showEditor();
+                    document.getElementById('imageInfo').textContent = `${img.width} × ${img.height}px`;
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showEditor() {
+            welcomeScreen.classList.add('hidden');
+            editorScreen.classList.remove('hidden');
+        }
+
+        function resetAndUploadNew() {
+            editorScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+            originalImage = null;
+            drawHistory = [];
+            transparentColors = [];
+            updateTransparentColorsList();
+            imageInput.value = '';
+        }
+
+        function setupCanvas(img) {
+            const maxWidth = 600;
+            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+            const displayWidth = img.width * scale;
+            const displayHeight = img.height * scale;
+
+            mainCanvas.width = displayWidth;
+            mainCanvas.height = displayHeight;
+            mainCanvas.style.width = displayWidth + 'px';
+            mainCanvas.style.height = displayHeight + 'px';
+            mainCtx.drawImage(img, 0, 0, displayWidth, displayHeight);
+
+            drawCanvas.width = displayWidth;
+            drawCanvas.height = displayHeight;
+            drawCanvas.style.width = displayWidth + 'px';
+            drawCanvas.style.height = displayHeight + 'px';
+            drawCanvas.style.cursor = 'crosshair';
+
+            drawHistory = [];
+            saveDrawState();
+            updateGrid();
+        }
+
+        function updateGrid() {
+            if (!originalImage) return;
+
+            const cols = parseInt(colsInput.value) || 4;
+            const rows = parseInt(rowsInput.value) || 4;
+
+            gridOverlay.innerHTML = '';
+
+            const cellWidth = 100 / cols;
+            const cellHeight = 100 / rows;
+
+            for (let i = 1; i < cols; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line-v';
+                line.style.left = (i * cellWidth) + '%';
+                gridOverlay.appendChild(line);
+            }
+
+            for (let i = 1; i < rows; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line-h';
+                line.style.top = (i * cellHeight) + '%';
+                gridOverlay.appendChild(line);
+            }
+
+            // Update grid button states
+            document.querySelectorAll('.card button[onclick^="setGrid"]').forEach(btn => {
+                const match = btn.textContent.match(/(\d+)×(\d+)/);
+                if (match && parseInt(match[1]) === cols && parseInt(match[2]) === rows) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            updatePreview();
+        }
+
+        function setGrid(cols, rows) {
+            colsInput.value = cols;
+            rowsInput.value = rows;
+            updateGrid();
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            isEyedropper = false;
+            document.getElementById('eyedropperBtn').classList.remove('active');
+            
+            document.querySelectorAll('#brushBtn, #moveBtn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + 'Btn').classList.add('active');
+            
+            drawCanvas.style.cursor = tool === 'brush' ? 'crosshair' : 'grab';
+        }
+
+        function setColor(color, btn = null) {
+            brushColor = color;
+            document.getElementById('currentColorDisplay').style.background = color;
+            document.getElementById('currentColorHex').textContent = color;
+            customColorInput.value = color;
+
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+        }
+
+        function toggleEyedropper() {
+            isEyedropper = !isEyedropper;
+            const btn = document.getElementById('eyedropperBtn');
+            if (isEyedropper) {
+                btn.classList.add('active');
+                drawCanvas.style.cursor = 'crosshair';
+            } else {
+                btn.classList.remove('active');
+                drawCanvas.style.cursor = currentTool === 'brush' ? 'crosshair' : 'grab';
+            }
+        }
+
+        function getCanvasCoords(e) {
+            const rect = drawCanvas.getBoundingClientRect();
+            const scaleX = drawCanvas.width / rect.width;
+            const scaleY = drawCanvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function pickColor(e) {
+            const coords = getCanvasCoords(e);
+            const pixel = mainCtx.getImageData(coords.x, coords.y, 1, 1).data;
+            const color = '#' + [pixel[0], pixel[1], pixel[2]].map(x => x.toString(16).padStart(2, '0')).join('');
+            
+            if (isTransparentEyedropper) {
+                addTransparentColor(color);
+                isTransparentEyedropper = false;
+            } else {
+                setColor(color);
+            }
+            
+            isEyedropper = false;
+            document.getElementById('eyedropperBtn').classList.remove('active');
+            drawCanvas.style.cursor = currentTool === 'brush' ? 'crosshair' : 'grab';
+        }
+
+        function startDraw(e) {
+            if (isEyedropper) {
+                pickColor(e);
+                return;
+            }
+
+            if (currentTool !== 'brush') return;
+
+            isDrawing = true;
+            const coords = getCanvasCoords(e);
+            lastX = coords.x;
+            lastY = coords.y;
+
+            drawCtx.beginPath();
+            drawCtx.arc(lastX, lastY, brushSize / 2, 0, Math.PI * 2);
+            drawCtx.fillStyle = brushColor;
+            drawCtx.fill();
+        }
+
+        function draw(e) {
+            if (!isDrawing || currentTool !== 'brush') return;
+
+            const coords = getCanvasCoords(e);
+
+            drawCtx.beginPath();
+            drawCtx.moveTo(lastX, lastY);
+            drawCtx.lineTo(coords.x, coords.y);
+            drawCtx.strokeStyle = brushColor;
+            drawCtx.lineWidth = brushSize;
+            drawCtx.lineCap = 'round';
+            drawCtx.lineJoin = 'round';
+            drawCtx.stroke();
+
+            lastX = coords.x;
+            lastY = coords.y;
+        }
+
+        function stopDraw() {
+            if (isDrawing) {
+                isDrawing = false;
+                saveDrawState();
+                updatePreview();
+            }
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            startDraw(mouseEvent);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            draw(mouseEvent);
+        }
+
+        function saveDrawState() {
+            const imageData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+            drawHistory.push(imageData);
+            if (drawHistory.length > 50) drawHistory.shift();
+        }
+
+        function undoDraw() {
+            if (drawHistory.length > 1) {
+                drawHistory.pop();
+                const previousState = drawHistory[drawHistory.length - 1];
+                drawCtx.putImageData(previousState, 0, 0);
+                updatePreview();
+            } else if (drawHistory.length === 1) {
+                drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                drawHistory = [];
+                saveDrawState();
+                updatePreview();
+            }
+        }
+
+        function getMergedCanvas() {
+            const mergedCanvas = document.createElement('canvas');
+            mergedCanvas.width = originalImage.width;
+            mergedCanvas.height = originalImage.height;
+            const ctx = mergedCanvas.getContext('2d');
+
+            ctx.drawImage(originalImage, 0, 0);
+
+            const scale = originalImage.width / drawCanvas.width;
+            ctx.save();
+            ctx.scale(scale, scale);
+            ctx.drawImage(drawCanvas, 0, 0);
+            ctx.restore();
+
+            return mergedCanvas;
+        }
+
+        function updatePreview() {
+            if (!originalImage) return;
+
+            const cols = parseInt(colsInput.value) || 4;
+            const rows = parseInt(rowsInput.value) || 4;
+            const total = cols * rows;
+
+            const previewGrid = document.getElementById('previewGrid');
+            previewGrid.innerHTML = '';
+
+            const mergedCanvas = getMergedCanvas();
+            const cellWidth = originalImage.width / cols;
+            const cellHeight = originalImage.height / rows;
+
+            document.getElementById('previewCount').textContent = `共 ${total} 个`;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = cellWidth;
+                    tempCanvas.height = cellHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+
+                    tempCtx.drawImage(
+                        mergedCanvas,
+                        col * cellWidth, row * cellHeight, cellWidth, cellHeight,
+                        0, 0, cellWidth, cellHeight
+                    );
+
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item cursor-pointer relative group';
+                    previewItem.style.background = 'var(--bg-tertiary)';
+                    
+                    const img = document.createElement('img');
+                    img.src = tempCanvas.toDataURL('image/png');
+                    img.className = 'w-full h-auto rounded-lg';
+                    
+                    const overlay = document.createElement('div');
+                    overlay.className = 'absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-lg';
+                    overlay.innerHTML = `<span class="text-xs">💾</span>`;
+                    
+                    const index = row * cols + col + 1;
+                    previewItem.onclick = () => downloadSingle(tempCanvas, index);
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(overlay);
+                    previewGrid.appendChild(previewItem);
+                }
+            }
+        }
+
+        // Zoom functions
+        function zoomCanvas(factor) {
+            if (!originalImage) return;
+            currentZoom = Math.max(0.25, Math.min(4, currentZoom * factor));
+            applyZoom();
+        }
+        
+        function setZoom(zoom) {
+            if (!originalImage) return;
+            currentZoom = zoom;
+            applyZoom();
+        }
+        
+        function applyZoom() {
+            document.getElementById('zoomValue').textContent = Math.round(currentZoom * 100);
+            canvasContainer.style.transform = `scale(${currentZoom})`;
+        }
+
+        // Transparent color functions
+        function addTransparentColorFromPicker() {
+            addTransparentColor(customColorInput.value);
+        }
+        
+        function addTransparentColorFromEyedropper() {
+            if (!originalImage) {
+                alert('请先上传图片！');
+                return;
+            }
+            isTransparentEyedropper = true;
+            isEyedropper = true;
+            drawCanvas.style.cursor = 'crosshair';
+            document.getElementById('eyedropperBtn').classList.add('active');
+        }
+        
+        function addTransparentColor(color) {
+            if (transparentColors.includes(color.toLowerCase())) return;
+            transparentColors.push(color.toLowerCase());
+            updateTransparentColorsList();
+        }
+        
+        function removeTransparentColor(index) {
+            transparentColors.splice(index, 1);
+            updateTransparentColorsList();
+        }
+        
+        function updateTransparentColorsList() {
+            const list = document.getElementById('transparentColorsList');
+            if (transparentColors.length === 0) {
+                list.innerHTML = '<span class="text-secondary text-xs">暂无</span>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            transparentColors.forEach((color, index) => {
+                const item = document.createElement('div');
+                item.className = 'transparent-item';
+                item.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg border-2" style="background: ${color}; border-color: var(--border-color)"></div>
+                    <div class="delete-btn" onclick="removeTransparentColor(${index})">✕</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function applyTransparency(canvas) {
+            if (transparentColors.length === 0) return canvas;
+            
+            const tolerance = parseInt(document.getElementById('colorTolerance').value);
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                for (const color of transparentColors) {
+                    const tr = parseInt(color.slice(1, 3), 16);
+                    const tg = parseInt(color.slice(3, 5), 16);
+                    const tb = parseInt(color.slice(5, 7), 16);
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(r - tr, 2) +
+                        Math.pow(g - tg, 2) +
+                        Math.pow(b - tb, 2)
+                    );
+                    
+                    if (distance <= tolerance * 4.42) {
+                        data[i + 3] = 0;
+                        break;
+                    }
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            return canvas;
+        }
+
+        // File naming functions
+        function generateFileName(index) {
+            const num = startNumber + index - 1;
+            return `${filePrefix}_${String(num).padStart(numberPadding, '0')}.png`;
+        }
+        
+        function updateFileNamePreview() {
+            document.getElementById('fileNamePreview').textContent = generateFileName(1);
+        }
+        
+        function setNumberPadding(padding) {
+            numberPadding = padding;
+            document.querySelectorAll('.num-pad-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 1 === padding);
+            });
+            updateFileNamePreview();
+        }
+
+        // Folder selection
+        async function selectSaveFolder() {
+            if (!('showDirectoryPicker' in window)) {
+                alert('您的浏览器不支持选择文件夹功能');
+                return;
+            }
+            
+            try {
+                selectedFolderHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                const folderEl = document.getElementById('selectedFolder');
+                folderEl.textContent = selectedFolderHandle.name;
+                folderEl.style.color = 'var(--accent-1)';
+            } catch (err) {
+                if (err.name !== 'AbortError') console.error(err);
+            }
+        }
+
+        // Save/download functions
+        async function saveFile(canvas, fileName) {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            
+            if (selectedFolderHandle) {
+                try {
+                    const fileHandle = await selectedFolderHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    return true;
+                } catch (err) {
+                    downloadBlob(blob, fileName);
+                    return false;
+                }
+            } else {
+                downloadBlob(blob, fileName);
+                return true;
+            }
+        }
+        
+        function downloadBlob(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadSingle(canvas, index) {
+            const processedCanvas = document.createElement('canvas');
+            processedCanvas.width = canvas.width;
+            processedCanvas.height = canvas.height;
+            const ctx = processedCanvas.getContext('2d');
+            ctx.drawImage(canvas, 0, 0);
+            
+            applyTransparency(processedCanvas);
+            await saveFile(processedCanvas, generateFileName(index));
+        }
+
+        async function exportAll() {
+            if (!originalImage) {
+                alert('请先上传图片！');
+                return;
+            }
+
+            const cols = parseInt(colsInput.value) || 4;
+            const rows = parseInt(rowsInput.value) || 4;
+
+            const mergedCanvas = getMergedCanvas();
+            const cellWidth = originalImage.width / cols;
+            const cellHeight = originalImage.height / rows;
+            const total = cols * rows;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = cellWidth;
+                    tempCanvas.height = cellHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+
+                    tempCtx.drawImage(
+                        mergedCanvas,
+                        col * cellWidth, row * cellHeight, cellWidth, cellHeight,
+                        0, 0, cellWidth, cellHeight
+                    );
+                    
+                    applyTransparency(tempCanvas);
+
+                    const index = row * cols + col + 1;
+                    await saveFile(tempCanvas, generateFileName(index));
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            alert(`🎉 导出完成！共 ${total} 个文件`);
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            isLightTheme = !isLightTheme;
+            document.body.classList.toggle('light-theme', isLightTheme);
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
